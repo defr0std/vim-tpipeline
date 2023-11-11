@@ -18,7 +18,7 @@ func tpipeline#lualine#clear_all_stl()
 		noa let s = getwinvar(win_getid(i), '&stl')
 		" Resetting the statusline may interfere with typing in that window,
 		" check for current statusline value before resetting it.
-		if !empty(s) && s !=# '%#StatusLine#'
+		if getbufvar(winbufnr(i), '&buftype') != "prompt" && !empty(s) && s !=# '%#StatusLine#'
 			noa call win_execute(win_getid(i), 'setlocal stl<')
 		endif
 	endfor
