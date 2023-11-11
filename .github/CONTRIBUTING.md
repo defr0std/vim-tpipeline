@@ -3,14 +3,14 @@
 ## Issues and bug reports
 When reporting issues, please include both your vim config and tmux config if relevant. If you don't know what parts of your config are relevant, it is okay to just paste your entire config.
 Often it is also helpful to know what terminal emulator you are using.
-When debugging statusline artifacts, it can be helpful to checkout `:echo tpipeline#debug#info()`.
+When debugging statusline artifacts, it can be helpful to checkout `:echo tpipeline#debug#info()` or `:checkhealth tpipeline` in neovim.
 
 ## Development
 Code contributions are much welcomed and appreciated.
 Here are a few guidelines to help you get started:
 
 ### Code Guidelines
-- If you add a new option, document it in the vim help file. Documenting it in the [README](/README.md) is NOT sufficient (and not even needed for most options). Take a look at [the existing helpfile](/doc/tpipeline.txt) and document in a similar style. You can generate a help tag later with [scripts/gen-helptags.sh](/scripts/gen-helptags.sh)
+- If you add a new option, document it in the vim help file. Documenting it in the [README](/README.md) is NOT sufficient (and not even needed for most options). Take a look at [the existing helpfile](/doc/tpipeline.txt) and document in a similar style.
 - Never change basic vim options (for example `:h fillchars`) just because they make more sense for you. Plugins should never overwrite unrelated settings
 - Only add comments if they bring extra info to the table, don't just reiterate obvious code
 - Often good variable names are much more worth than comments

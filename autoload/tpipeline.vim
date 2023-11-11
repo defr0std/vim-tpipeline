@@ -2,6 +2,8 @@ if !has('nvim')
 	import autoload 'tpipeline/parse.vim'
 endif
 
+let s:exit_code = -1
+
 func tpipeline#get_filepath()
 	" e.g. /tmp/tmux-1000/default-$0-vimbridge
 	let tmux = $TMUX
@@ -140,6 +142,29 @@ func tpipeline#initialize()
 	augroup END
 endfunc
 
+func tpipeline#on_stderr(chan_id, data, name)
+	let s:elines[-1] .= a:data[0]
+	call extend(s:elines, a:data[1:])
+	while len(s:elines) > 1
+		let line = remove(s:elines, 0)
+		call tpipeline#debug#log_err(line)
+	endwhile
+endfunc
+
+func tpipeline#err_cb(channel, msg)
+	call tpipeline#debug#log_err(a:msg)
+endfunc
+
+func tpipeline#on_exit(job, code, t)
+	call tpipeline#state#freeze()
+	let s:exit_code = a:code
+endfunc
+
+func tpipeline#exit_cb(job, code)
+	call tpipeline#state#freeze()
+	let s:exit_code = a:code
+endfunc
+
 func tpipeline#fork_job()
 	if g:tpipeline_restore
 		let s:restore_left = systemlist("sh -c 'echo \"\"; tmux display-message -p \"#{status-left}\"'")[-1]
@@ -171,10 +196,12 @@ func tpipeline#fork_job()
 
 	let command = ['bash', '-c', script]
 	if s:is_nvim
-		let s:job = jobstart(command)
+		let s:elines = ['']
+		let options = #{on_stderr: function('tpipeline#on_stderr'), on_exit: function('tpipeline#on_exit')}
+		let s:job = jobstart(command, options)
 		let s:channel = s:job
 	else
-		let options = #{noblock: 1}
+		let options = #{noblock: 1, err_cb: function('tpipeline#err_cb'), exit_cb: function('tpipeline#exit_cb')}
 		let s:job = job_start(command, options)
 		let s:channel = job_getchannel(s:job)
 	endif
@@ -260,6 +287,7 @@ func tpipeline#cleanup()
 		else
 			call job_stop(s:job)
 		endif
+		call tpipeline#state#freeze()
 		call writefile([''], s:tpipeline_filepath, '')
 		if g:tpipeline_split
 			call writefile([''], s:tpipeline_right_filepath, '')
@@ -309,4 +337,26 @@ endfunc
 func tpipeline#deferred_cleanup()
 	let s:needs_cleanup = 1
 	let s:cleanup_timer = timer_start(s:cleanup_delay, {-> tpipeline#cautious_cleanup()})
+endfunc
+
+func tpipeline#job_state()
+	if !exists('s:job')
+		return "dead (init not called)"
+	endif
+
+	let res = ""
+	if s:is_nvim
+		let pid = 0
+		if s:exit_code < 0
+			let pid = jobpid(s:job)
+		endif
+		let res = pid ? "run as PID " . pid : "dead"
+	else
+		let res = job_status(s:job)
+	endif
+	if s:exit_code > -1
+		let res .= printf(" (exit code %d)", s:exit_code)
+	endif
+
+	return res
 endfunc

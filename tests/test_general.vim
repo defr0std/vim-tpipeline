@@ -26,6 +26,23 @@ func Read_socket()
 	endif
 endfunc
 
+func Test_loaded()
+	call assert_equal(1, g:loaded_tpipeline)
+endfunc
+
+func Test_can_debug()
+	let info = tpipeline#debug#info()
+	call assert_true(len(info))
+endfunc
+
+func Test_job_runs()
+	let job = tpipeline#debug#info()
+	" background job is still running
+	call assert_match("^run", job.job_state)
+	" no errors
+	call assert_true(job.job_errors->empty(), job.job_errors)
+endfunc
+
 func Strip_hl(s)
 	return substitute(a:s, '#\[[^\]]*\]', '', 'g')
 endfunc
@@ -194,4 +211,12 @@ func Test_quoted_strings()
 	let g:tpipeline_statusline = '%{eval("g:ReturnNumber()")}'
 	call Read_socket()
 	call assert_equal(string(g:ReturnNumber()), Strip_hl(s:left))
+endfunc
+
+func Test_minwid_padded()
+	" padding stl groups with minwid should not confuse the statusline splitter to cause right alignment where there is none
+	let g:tpipeline_statusline = '%2(a%)%='
+	call Read_socket()
+	call assert_match("a$", s:left)
+	call assert_true(empty(s:right))
 endfunc
